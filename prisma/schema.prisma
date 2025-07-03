@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("MYSQL")
+  shadowDatabaseUrl = env("MYSQL_SHADOW")
+}
+
+model blacklists {
+  id        Int      @id @default(autoincrement())
+  token     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model features {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  description   String?
+  featureCreate Boolean  @default(false)
+  featureRead   Boolean  @default(false)
+  featureUpdate Boolean  @default(false)
+  featureDelete Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  privileges privileges[]
+}
+
+model phases {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  name_en   String
+  name_id   String
+  name_ph   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks              tasks[]
+  fromPhaseHistories taskhistories[] @relation("FromPhase")
+  toPhaseHistories   taskhistories[] @relation("ToPhase")
+}
+
+model priorities {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  name_en   String
+  name_id   String
+  name_ph   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks tasks[]
+}
+
+model privileges {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique // uuidv4
+  roleId          Int
+  featureId       Int
+  privilegeCreate Boolean  @default(false)
+  privilegeRead   Boolean  @default(false)
+  privilegeUpdate Boolean  @default(false)
+  privilegeDelete Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  role    roles    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  feature features @relation(fields: [featureId], references: [id], onDelete: Cascade)
+}
+
+model roles {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  privileges privileges[]
+  users      users[]
+}
+
+model tasks {
+  id          Int      @id @default(autoincrement())
+  image       String? // Upload image
+  file        String? // Upload file
+  authorId    Int
+  assigneeId  Int?
+  priorityId  Int
+  phaseId     Int
+  start       DateTime
+  deadline    DateTime
+  name        String
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author   users      @relation("AuthorTasks", fields: [authorId], references: [id])
+  assignee users?     @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  priority priorities @relation(fields: [priorityId], references: [id], onDelete: Cascade)
+  phase    phases     @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  phaseHistories taskhistories[]
+}
+
+model taskhistories {
+  id          Int      @id @default(autoincrement())
+  taskId      Int
+  fromPhaseId Int?
+  toPhaseId   Int
+  changedById Int
+  name        String //uuidv4
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  task      tasks   @relation(fields: [taskId], references: [id])
+  fromPhase phases? @relation("FromPhase", fields: [fromPhaseId], references: [id])
+  toPhase   phases  @relation("ToPhase", fields: [toPhaseId], references: [id])
+  changedBy users   @relation("ChangedByUser", fields: [changedById], references: [id])
+}
+
+model users {
+  id        Int      @id @default(autoincrement())
+  photo     String? // Upload Photo
+  roleId    Int
+  name      String
+  email     String   @unique
+  password  String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  authorTasks   tasks[] @relation("AuthorTasks")
+  assignedTasks tasks[] @relation("AssignedTasks")
+
+  changedPhaseHistories taskhistories[] @relation("ChangedByUser")
+}

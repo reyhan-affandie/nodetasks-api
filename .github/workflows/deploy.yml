@@ -1,0 +1,85 @@
+name: Deploy via Self-Hosted Runner
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set deployment config
+        run: |
+          BRANCH="$(echo $GITHUB_REF | sed 's|refs/heads/||')"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          echo "INSTALL_CMD=npm install --omit=dev" >> $GITHUB_ENV
+
+          if [ "$BRANCH" = "main" ]; then
+            echo "PORT=5007" >> $GITHUB_ENV
+            echo "DEPLOY_PATH=/www/wwwroot/nodetasksapi.workmild.ai" >> $GITHUB_ENV
+            echo "START_CMD=/www/server/nodejs/vhost/scripts/nodetasksapi.sh" >> $GITHUB_ENV
+            echo "CRON_FILE=/www/server/cron/3b95e6ae6453b1d1d05276704ba294f8" >> $GITHUB_ENV
+          elif [ "$BRANCH" = "dev" ]; then
+            echo "PORT=5006" >> $GITHUB_ENV
+            echo "DEPLOY_PATH=/www/wwwroot/devnodetasksapi.workmild.ai" >> $GITHUB_ENV
+            echo "START_CMD=/www/server/nodejs/vhost/scripts/devnodetasksapi.sh" >> $GITHUB_ENV
+            echo "CRON_FILE=/www/server/cron/74044435c9c48541c90c8e5dd59bab5c" >> $GITHUB_ENV
+          else
+            echo "Unsupported branch: $BRANCH. Exiting..."
+            exit 0
+          fi
+
+      - name: Disable related cron during deployment
+        run: |
+          sudo crontab -l | grep -v "$CRON_FILE" | sudo crontab -
+
+      - name: Kill port before starting (safe)
+        run: |
+          sudo fuser -k ${PORT}/tcp || true
+
+      - name: Sync project to deployment folder
+        run: |
+          cd $GITHUB_WORKSPACE
+          cp .gitignore .rsync-exclude
+          rsync -av --delete --exclude-from='.rsync-exclude' ./ "$DEPLOY_PATH" || true
+
+      - name: Correct file permissions
+        run: |
+          cd "$DEPLOY_PATH"
+          sudo find . ! -name '.user.ini' -exec chown www:www {} + || true
+          sudo chmod -R 755 . || true
+
+      - name: Install dependencies
+        run: |
+          sudo -u www bash -c "cd '$DEPLOY_PATH' && $INSTALL_CMD" || { echo "npm install failed"; exit 1; }
+
+      - name: Generate Prisma
+        run: |
+          sudo -u www bash -c "cd '$DEPLOY_PATH' && npx prisma generate" || { echo "npx prisma generate failed"; exit 1; }
+
+      - name: Deploy Prisma Migrations
+        run: |
+          sudo -u www bash -c "cd '$DEPLOY_PATH' && npx prisma migrate deploy" || { echo "npx prisma migrate deploy failed"; exit 1; }
+
+      - name: Run Seed Script
+        run: |
+          sudo -u www bash -c "cd '$DEPLOY_PATH' && npx prisma db seed" || { echo "Seeding failed"; exit 1; }
+
+      - name: Build app
+        run: |
+          sudo -u www bash -c "cd '$DEPLOY_PATH' && npm run build" || { echo "npm run build failed"; exit 1; }
+
+      - name: Restart service
+        run: |
+          sudo -u www bash -c "$START_CMD" || { echo "Service restart failed"; exit 1; }
+
+      - name: Re-enable related cron after deployment after 10 seconds
+        run: |
+          sleep 10
+          sudo crontab -l | grep -q "$CRON_FILE" || \
+          (sudo crontab -l; echo "* * * * * $CRON_FILE >> $(dirname $CRON_FILE)/$(basename $CRON_FILE .sh).log 2>&1") | sudo crontab -
