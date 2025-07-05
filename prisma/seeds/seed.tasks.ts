@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export const seedTasks = async ({ author, assignee }) => {
   const sampleTasks = [
     { name: "Setup project repository", description: "Initialize a new git repository and push the initial project structure." },
-    { name: "Design database schema", description: "Plan out the tables, fields, and relationships for the application's data model." },
+    { name: "Design database schema", description: "Plan out the tables, fields, and relationships for the application`s data model." },
     { name: "Implement authentication", description: "Add user registration and login functionality, including password hashing." },
     { name: "Create landing page", description: "Build a responsive landing page with project highlights and a contact form." },
     { name: "Write unit tests", description: "Create automated tests to validate business logic and prevent regressions." },
