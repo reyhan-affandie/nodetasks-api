@@ -83,19 +83,31 @@ export const multerMiddlewareFile = (req: Request, res: Response, next: NextFunc
   });
 };
 
-// in your multer config file:
+const dynamicTypeStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const moduleName = req.baseUrl.match(/\/api\/([a-zA-Z0-9]+)/)?.[1] || "default";
+    const ext = path.extname(file.originalname).toLowerCase().replace(".", "");
+    const type = ext === "pdf" ? "file" : "image";
+    const dest = getDynamicDestination(moduleName, type);
+    cb(null, dest);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${uuidv4()}.${Date.now()}${ext}`);
+  },
+});
+
 export const multerMiddlewareImageFile = (req: Request, res: Response, next: NextFunction) => {
   const upload = multer({
     limits: {
-      fileSize: 100 * 1024 * 1024, // Adjust as needed
+      fileSize: 100 * 1024 * 1024,
       files: 5,
     },
-    storage: getStorage("file"), // or you can customize per field, see docs
+    storage: dynamicTypeStorage,
     fileFilter: (req, file, cb) => {
-      // allow image and pdf
       const allowed = ["jpg", "jpeg", "png", "pdf"];
-      const fileType = file.mimetype.split("/")[1];
-      if (!allowed.includes(fileType)) {
+      const ext = path.extname(file.originalname).toLowerCase().replace(".", "");
+      if (!allowed.includes(ext)) {
         cb(new Error("Unsupported file type"));
       } else {
         cb(null, true);
@@ -103,7 +115,6 @@ export const multerMiddlewareImageFile = (req: Request, res: Response, next: Nex
     },
   });
 
-  // Expect 'image' and 'file' fields
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "file", maxCount: 1 },
