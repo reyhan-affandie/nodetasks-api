@@ -86,14 +86,14 @@ export const multerMiddlewareFile = (req: Request, res: Response, next: NextFunc
 const dynamicTypeStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const moduleName = req.baseUrl.match(/\/api\/([a-zA-Z0-9]+)/)?.[1] || "default";
-    const ext = path.extname(file.originalname).toLowerCase().replace(".", "");
-    const type = ext === "pdf" ? "file" : "image";
+    let type = "file";
+    if (file.mimetype === "application/pdf") {
+      type = "file";
+    } else if (file.mimetype === "image/jpeg" || file.mimetype === "image/png" || file.mimetype === "image/jpg") {
+      type = "image";
+    }
     const dest = getDynamicDestination(moduleName, type);
     cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}.${Date.now()}${ext}`);
   },
 });
 
