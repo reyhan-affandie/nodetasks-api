@@ -154,15 +154,15 @@ export const engineGetInputValues = async (fields: FieldsType, req: Request): Pr
     const value = req.body[key];
 
     if (field.isImage || field.isFile) {
-      const files = req.files as Express.Multer.File[];
-
-      if (Array.isArray(files)) {
-        for (const file of files) {
-          if (file?.fieldname === key && file?.path) {
-            requestValues[key] = file.path;
-            break; // once matched, skip checking others
+      if (Array.isArray(req.files)) {
+        for (const file of req.files) {
+          if (file.fieldname === key && file.path) {
+            requestValues[key] = file.path; 
+            break;
           }
         }
+      } else if (req.files && req.files[key] && req.files[key][0]) {
+        requestValues[key] = req.files[key][0].path;
       }
     } else if (field.isHashed && value) {
       requestValues[key] = await hashPassword(value);
