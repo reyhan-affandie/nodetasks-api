@@ -100,7 +100,9 @@ export const sendForgotPasswordEmail: RequestHandler = async (req, res, next) =>
     const verifyLink = clientOrigin + "/forgot-password/" + generateShortToken(tokenPayload);
 
     const transporter = nodemailer.createTransport({
-      service: EMAIL_SERVER,
+      host: EMAIL_SERVER, 
+      port: 587,
+      secure: false,
       auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS,
@@ -110,7 +112,7 @@ export const sendForgotPasswordEmail: RequestHandler = async (req, res, next) =>
       theme: "default",
       product: {
         name: APP_NAME,
-        link: CLIENT_ORIGIN,
+        link: clientOrigin,
         logo: EMAIL_LOGO,
         logoHeight: "200px",
         copyright: `Copyright © ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.`,
@@ -134,14 +136,12 @@ export const sendForgotPasswordEmail: RequestHandler = async (req, res, next) =>
     };
 
     const emailHtml = mailGenerator.generate(emailContent);
-
     await transporter.sendMail({
       from: `${APP_NAME} <${EMAIL_USER}>`,
       to: String(user.email),
       subject: "Reset Password Request",
       html: emailHtml,
     });
-
     res.status(OK).json({ message: "Reset password email sent successfully" });
   } catch (error) {
     return next(error);
