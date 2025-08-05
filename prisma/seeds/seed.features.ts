@@ -28,6 +28,14 @@ export const seedFeatures = async () => {
       featureDelete: true,
     },
     {
+      name: "events",
+      description: "Events Management",
+      featureCreate: true,
+      featureRead: true,
+      featureUpdate: true,
+      featureDelete: true,
+    },
+    {
       name: "features",
       description: "Manage features",
       featureCreate: true,
@@ -60,8 +68,16 @@ export const seedFeatures = async () => {
       featureDelete: true,
     },
     {
+      name: "schedules",
+      description: "Schedules",
+      featureCreate: true,
+      featureRead: true,
+      featureUpdate: true,
+      featureDelete: true,
+    },
+    {
       name: "tasks",
-      description: "Task Management",
+      description: "Tasks Management",
       featureCreate: true,
       featureRead: true,
       featureUpdate: true,
