@@ -4,41 +4,39 @@ import { hashPassword } from "../../src/utils/utlis";
 const prisma = new PrismaClient();
 
 export const seedUsers = async () => {
-  const adminPass = await hashPassword("admin1234");
   const userPass = await hashPassword("user1234");
 
-  const adminEmail = "dom@outsourcedstaff.com.au";
-  const userEmail = "reyhanz1988@gmail.com";
+  const allUsers = [
+    {
+      roleId: 1,
+      name: "Reyhan Emir Affandie",
+      email: "reyhanz1988@gmail.com",
+      phone: "+6287778306720",
+      address: "Jakarta, Indonesia",
+    },
+    { name: "Irawan Kurniadi", email: "irawan@example.com", phone: "+6281111111111", roleId: 3, address: "Jakarta, Indonesia" },
+    { name: "Ahmad Sulim", email: "ahmad@example.com", phone: "+6281222222222", roleId: 3, address: "Jakarta, Indonesia" },
+    { name: "Agung Nugroho", email: "agung@example.com", phone: "+6281333333333", roleId: 3, address: "Jakarta, Indonesia" },
+    { name: "Budi Suparti", email: "budi@example.com", phone: "+6281444444444", roleId: 3, address: "Jakarta, Indonesia" },
+    { name: "Putri Citrasari", email: "putri@example.com", phone: "+6281555555555", roleId: 3, address: "Jakarta, Indonesia" },
+  ];
 
-  let admin = await prisma.users.findUnique({ where: { email: adminEmail } });
-  if (!admin) {
-    admin = await prisma.users.create({
-      data: {
-        photo: "",
-        roleId: 1, 
-        name: "Dominic Procter",
-        email: adminEmail,
-        password: adminPass,
-        phone: "+61410617418",
-        address: "Sydney, Australia",
-      },
-    });
+  for (const user of allUsers) {
+    const existing = await prisma.users.findUnique({ where: { email: user.email } });
+    if (!existing) {
+      await prisma.users.create({
+        data: {
+          photo: "",
+          name: user.name,
+          email: user.email,
+          password: userPass,
+          phone: user.phone,
+          address: user.address,
+          roleId: user.roleId,
+        },
+      });
+    }
   }
 
-  let user = await prisma.users.findUnique({ where: { email: userEmail } });
-  if (!user) {
-    user = await prisma.users.create({
-      data: {
-        photo: "",
-        roleId: 3,
-        name: "Reyhan Emir Affandie",
-        email: userEmail,
-        password: userPass,
-        phone: "+6287778306720",
-        address: "Jakarta, Indonesia",
-      },
-    });
-  }
-
-  return { admin, user };
+  console.log("✅ Users seeded.");
 };

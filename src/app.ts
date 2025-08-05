@@ -14,6 +14,8 @@ import dashboard from "@/routes/dashboard.route";
 import priorities from "@/routes/priorities.route";
 import phases from "@/routes/phases.route";
 import tasks from "@/routes/tasks.route";
+import events from "@/routes/events.route";
+import schedules from "@/routes/schedules.route";
 import { NOT_FOUND, OK } from "@/constants/http";
 import { cleanUnexpectedFiles, isAuth } from "@/middleware/auth.middleware";
 import { APP_ORIGIN, CLIENT_ORIGIN, NODE_ENV, REDIS_URL } from "@/constants/env";
@@ -111,6 +113,8 @@ app.use("/api/dashboard", isAuth, dashboard);
 app.use("/api/priorities", isAuth, priorities);
 app.use("/api/phases", isAuth, phases);
 app.use("/api/tasks", isAuth, cleanUnexpectedFiles, tasks);
+app.use("/api/events", isAuth, events);
+app.use("/api/schedules", isAuth, schedules);
 
 if (NODE_ENV === "development") {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -2,13 +2,15 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import { auth } from "@/swaggers/auth.docs";
 import { phases } from "@/swaggers/phases.docs";
+import { events } from "@/swaggers/events.docs";
+import { schedules } from "@/swaggers/schedules.docs";
 import { tasks } from "@/swaggers/tasks.docs";
 import { taskhistories } from "@/swaggers/taskhistories.docs";
 import { users } from "@/swaggers/users.docs";
 
 import { APP_NAME, APP_ORIGIN } from "@/constants/env";
 
-const docs = [auth, phases, tasks, taskhistories, users];
+const docs = [auth, events, phases, schedules, tasks, taskhistories, users];
 const tags: any[] = [];
 const paths: Record<string, any> = {};
 docs.forEach((doc) => {
