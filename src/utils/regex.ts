@@ -26,3 +26,5 @@ export const regexURI = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
 // Validates URLs starting with http, https, or ftp. Ensures proper URI formatting.
 export const regexDate = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 // Strictly matches dates in 'YYYY-MM-DD' format with valid ranges for month and day.
+export const regexTime = /^([01]\d|2[0-3]):([0-5]\d)$/;
+// Matches 24-hour time format (e.g., 00:00 to 23:59)

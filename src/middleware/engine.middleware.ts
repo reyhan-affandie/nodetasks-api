@@ -110,7 +110,21 @@ export const engineGet = async (Model: PrismaModels, fields: FieldsType, req: Re
       include[key] = true;
     });
 
-    const whereConditions = [...(Object.keys(whereFK).length > 0 ? [whereFK] : []), ...(Object.keys(whereSearch).length > 0 ? [whereSearch] : [])];
+    const whereDate: Record<string, any> = {};
+    if ((Model === "events" || Model === "schedules") && req.query.dataDate && typeof req.query.dataDate === "string") {
+      const parsedDate = new Date(req.query.dataDate);
+      if (!isNaN(parsedDate.getTime())) {
+        whereDate["dataDate"] = parsedDate;
+      } else {
+        throw createHttpError(BAD_REQUEST, "Invalid dataDate format.");
+      }
+    }
+
+    const whereConditions = [
+      ...(Object.keys(whereFK).length > 0 ? [whereFK] : []),
+      ...(Object.keys(whereSearch).length > 0 ? [whereSearch] : []),
+      ...(Object.keys(whereDate).length > 0 ? [whereDate] : []),
+    ];
     const whereQuery = whereConditions.length > 0 ? { AND: whereConditions } : {};
 
     const total = await model.count({ where: whereQuery });
@@ -157,7 +171,7 @@ export const engineGetInputValues = async (fields: FieldsType, req: Request): Pr
       if (Array.isArray(req.files)) {
         for (const file of req.files) {
           if (file.fieldname === key && file.path) {
-            requestValues[key] = file.path; 
+            requestValues[key] = file.path;
             break;
           }
         }

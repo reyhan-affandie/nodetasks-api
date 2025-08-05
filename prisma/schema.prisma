@@ -83,6 +83,30 @@ model roles {
   users      users[]
 }
 
+model schedules {
+  id        Int      @id @default(autoincrement())
+  title     String
+  dataDate  DateTime
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model events {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  dataDate  DateTime
+  startTime String
+  endTime   String
+  status    Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model tasks {
   id          Int      @id @default(autoincrement())
   image       String? // Upload image
@@ -140,4 +164,6 @@ model users {
   assignedTasks tasks[] @relation("AssignedTasks")
 
   changedPhaseHistories taskhistories[] @relation("ChangedByUser")
+
+  events events[]
 }
