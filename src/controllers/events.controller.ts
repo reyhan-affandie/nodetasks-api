@@ -13,87 +13,49 @@ const Parent = "users";
 const ParentSingular = "user";
 const parentModel = getPrismaModel(Parent);
 
-const computeOverlap = (events: any[]) => {
-  const overlaps = events.map((event, i) => {
-    const currentStart = parseInt(event.startTime.split(":"[0])) || 0;
-    const currentEnd = parseInt(event.endTime.split(":"[0])) || 0;
-    let overlapCount = 1;
-    let overlapOrder = 1;
-
-    for (let j = 0; j < events.length; j++) {
-      if (i === j) continue;
-      const otherStart = parseInt(events[j].startTime.split(":"[0])) || 0;
-      const otherEnd = parseInt(events[j].endTime.split(":"[0])) || 0;
-      const isOverlap = !(currentEnd <= otherStart || currentStart >= otherEnd);
-      if (isOverlap) overlapCount++;
-      if (isOverlap && j < i) overlapOrder++;
-    }
-    return { ...event, overlapOrder, overlapCount };
-  });
-  return overlaps;
-};
-
 export const get: RequestHandler = async (req, res, next) => {
   try {
     const result = await engineGet(Model, fields, req);
-    console.log("result", result);
-    if (Array.isArray(result)) {
-      const enriched = computeOverlap(result);
-      res.status(OK).json(enriched);
-    } else {
-      res.status(OK).json(result);
-    }
+    res.status(OK).json(result);
   } catch (error) {
     next(error);
   }
 };
 
 export const getOne: RequestHandler = async (req, res, next) => {
-  if (!model) {
-    return next(createHttpError(BAD_REQUEST, "Invalid model name."));
-  }
+  if (!model) throw createHttpError(BAD_REQUEST, "Invalid model name.");
   try {
     const id = req.params.id;
     const idNumber = Number(id);
     if (!Number.isSafeInteger(idNumber)) {
-      return next(createHttpError(BAD_REQUEST, "Invalid module ID."));
+      throw createHttpError(BAD_REQUEST, "Invalid module ID.");
     }
     const include: Record<string, boolean> = {};
     include[ParentSingular] = true;
-
     const result = await model.findUnique({
-      where: { id: idNumber },
+      where: { id: Number(id) },
       include,
     });
     if (!result) {
-      return next(createHttpError(NOT_FOUND));
+      throw createHttpError(NOT_FOUND);
     }
-    const siblingEvents = await model.findMany({
-      where: {
-        userId: result.userId,
-        dataDate: result.dataDate,
-      },
-    });
-    const enriched = computeOverlap(siblingEvents).find((e) => e.id === result.id);
-    res.status(OK).json(enriched);
+    res.status(OK).json(result);
   } catch (error) {
     next(error);
   }
+};
+
+const validateAndConnectParent = async (model: any, key: string, value: any, label: string) => {
+  const found = await model.findUnique({ where: { id: Number(value) } });
+  if (!found) throw createHttpError(BAD_REQUEST, `Parent data not found: ${label}`);
+  return { connect: { id: Number(value) } };
 };
 
 export const create: RequestHandler = async (req, res, next) => {
   try {
     if (!validations(fields, req)) return;
     const requestValues = await engineCreateUpdate(Model, fields, req, false);
-    const checkParent = await parentModel.findUnique({
-      where: { id: Number(requestValues[ParentSingular]) },
-    });
-    if (!checkParent) {
-      return next(createHttpError(NOT_FOUND, `Parent data not found: ${Parent}`));
-    }
-    if (requestValues[ParentSingular]) {
-      requestValues[ParentSingular] = { connect: { id: Number(requestValues[ParentSingular]) } };
-    }
+    requestValues[ParentSingular] = await validateAndConnectParent(parentModel, ParentSingular, requestValues[ParentSingular], Parent);
     const result = await model.create({ data: requestValues as any });
     res.status(CREATED).json(result);
   } catch (error) {
@@ -113,9 +75,13 @@ export const update: RequestHandler = async (req, res, next) => {
     }
     if (!validations(fields, req)) return;
     const requestValues = await engineCreateUpdate(Model, fields, req, true);
+    const checkParent1 = await parentModel.findUnique({ where: { id: Number(requestValues[ParentSingular]) } });
+    if (!checkParent1) {
+      throw createHttpError(BAD_REQUEST, `Parent data not found.`);
+    }
     requestValues[ParentSingular] = { connect: { id: Number(requestValues[ParentSingular]) } };
     const result = await model.update({
-      data: requestValues,
+      data: requestValues as any,
       where: { id: Number(id) },
     });
     res.status(OK).json(result);
