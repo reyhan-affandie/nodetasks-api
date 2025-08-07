@@ -9,7 +9,7 @@ export const fields: FieldsType = {
     fkGet: true,
     search: false,
     select: true,
-    required: true,
+    required: false,
     unique: false,
     minLength: 1,
     maxLength: 15,
