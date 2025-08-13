@@ -16,6 +16,7 @@ const parentModel = getPrismaModel(Parent);
 export const get: RequestHandler = async (req, res, next) => {
   try {
     const result = await engineGet(Model, fields, req);
+    console.log(result);
     res.status(OK).json(result);
   } catch (error) {
     next(error);

@@ -1,5 +1,5 @@
 import { FieldsType } from "@/types/types";
-import { regexBoolean, regexDate, regexNumber, regexString, regexTime } from "@/utils/regex";
+import { regexBoolean, regexDateTime, regexNumber, regexString } from "@/utils/regex";
 
 export const fields: FieldsType = {
   user: {
@@ -34,50 +34,34 @@ export const fields: FieldsType = {
     isImage: false,
     isFile: false,
   },
-  dataDate: {
+  startDateTime: {
     type: Date,
     fk: false,
     parent: "",
     fkGet: false,
-    search: true,
+    search: false,
     select: true,
     required: true,
     unique: false,
-    minLength: 10,
-    maxLength: 10,
-    regex: regexDate,
+    minLength: 24,
+    maxLength: 24,
+    regex: regexDateTime,
     isHashed: false,
     isImage: false,
     isFile: false,
   },
-  startTime: {
-    type: String,
+  endDateTime: {
+    type: Date,
     fk: false,
     parent: "",
     fkGet: false,
-    search: true,
+    search: false,
     select: true,
     required: true,
     unique: false,
-    minLength: 5,
-    maxLength: 5,
-    regex: regexTime,
-    isHashed: false,
-    isImage: false,
-    isFile: false,
-  },
-  endTime: {
-    type: String,
-    fk: false,
-    parent: "",
-    fkGet: false,
-    search: true,
-    select: true,
-    required: true,
-    unique: false,
-    minLength: 5,
-    maxLength: 5,
-    regex: regexTime,
+    minLength: 24,
+    maxLength: 24,
+    regex: regexDateTime,
     isHashed: false,
     isImage: false,
     isFile: false,

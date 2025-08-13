@@ -9,16 +9,16 @@ export const seedUsers = async () => {
   const allUsers = [
     {
       roleId: 1,
-      name: "Reyhan Emir Affandie",
+      name: "Reyhan Affandie",
       email: "reyhanz1988@gmail.com",
       phone: "+6287778306720",
       address: "Jakarta, Indonesia",
     },
-    { name: "Irawan Kurniadi", email: "irawan@example.com", phone: "+6281111111111", roleId: 3, address: "Jakarta, Indonesia" },
-    { name: "Ahmad Sulim", email: "ahmad@example.com", phone: "+6281222222222", roleId: 3, address: "Jakarta, Indonesia" },
-    { name: "Agung Nugroho", email: "agung@example.com", phone: "+6281333333333", roleId: 3, address: "Jakarta, Indonesia" },
-    { name: "Budi Suparti", email: "budi@example.com", phone: "+6281444444444", roleId: 3, address: "Jakarta, Indonesia" },
-    { name: "Putri Citrasari", email: "putri@example.com", phone: "+6281555555555", roleId: 3, address: "Jakarta, Indonesia" },
+    { name: "Michael Anderson", email: "michael.anderson@example.com", phone: "+12025550111", roleId: 3, address: "New York, USA" },
+    { name: "David Thompson", email: "david.thompson@example.com", phone: "+12025550222", roleId: 3, address: "Los Angeles, USA" },
+    { name: "Christopher Miller", email: "christopher.miller@example.com", phone: "+12025550333", roleId: 3, address: "Chicago, USA" },
+    { name: "James Robinson", email: "james.robinson@example.com", phone: "+12025550444", roleId: 3, address: "San Diego, USA" },
+    { name: "Emily Parker", email: "emily.parker@example.com", phone: "+12025550555", roleId: 3, address: "San Francisco, USA" },
   ];
 
   for (const user of allUsers) {

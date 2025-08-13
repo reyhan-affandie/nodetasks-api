@@ -29,32 +29,6 @@ model features {
   privileges privileges[]
 }
 
-model phases {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  name_en   String
-  name_id   String
-  name_ph   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tasks              tasks[]
-  fromPhaseHistories taskhistories[] @relation("FromPhase")
-  toPhaseHistories   taskhistories[] @relation("ToPhase")
-}
-
-model priorities {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  name_en   String
-  name_id   String
-  name_ph   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tasks tasks[]
-}
-
 model privileges {
   id              Int      @id @default(autoincrement())
   name            String   @unique // uuidv4
@@ -69,6 +43,10 @@ model privileges {
 
   role    roles    @relation(fields: [roleId], references: [id], onDelete: Cascade)
   feature features @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, featureId])
+  @@index([roleId])
+  @@index([featureId])
 }
 
 model roles {
@@ -83,28 +61,216 @@ model roles {
   users      users[]
 }
 
+model users {
+  id        Int      @id @default(autoincrement())
+  photo     String? // Upload Photo
+  roleId    Int
+  name      String
+  email     String   @unique
+  password  String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  authorTasks   tasks[] @relation("AuthorTasks")
+  assignedTasks tasks[] @relation("AssignedTasks")
+
+  changedPhaseHistories taskhistories[] @relation("ChangedByUser")
+
+  events       events[]
+  transactions transactions[]
+
+  changedTransactionHistories transactionhistories[] @relation("ChangedByUser")
+
+  @@index([roleId])
+}
+
+/**
+ * --------------------------TRANSACTIONS--------------------------
+ */
+model clients {
+  id        Int      @id @default(autoincrement())
+  photo     String? // upload
+  name      String
+  country   String
+  state     String
+  city      String
+  zipcode   String
+  phone     String   @unique
+  address   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions        transactions[]
+  fromClientHistories transactionhistories[] @relation("FromClient")
+  toClientHistories   transactionhistories[] @relation("ToClient")
+
+  @@index([name])
+  @@index([city])
+}
+
+model currencies {
+  id        Int      @id @default(autoincrement())
+  name      String
+  symbol    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions          transactions[]
+  fromCurrencyHistories transactionhistories[] @relation("FromCurrency")
+  toCurrencyHistories   transactionhistories[] @relation("ToCurrency")
+}
+
+model transactions {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  clientId        Int
+  stageId         Int
+  currencyId      Int
+  transactionDate DateTime
+  amount          BigInt?  @db.BigInt
+  notes           String?  @db.Text
+  sheet           String?
+  tab             Int?
+  tabname         String?
+  sheetrow        Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     users      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client   clients    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  stage    stages     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  currency currencies @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+
+  transactionHistories transactionhistories[]
+
+  @@unique([userId, sheet, tab, sheetrow]) // prevents duplicate imports
+  @@index([userId, transactionDate])
+  @@index([clientId])
+  @@index([stageId])
+  @@index([transactionDate])
+  @@map("transactions")
+}
+
+model transactionhistories {
+  id             Int      @id @default(autoincrement())
+  transactionId  Int
+  fromClientId   Int?
+  toClientId     Int
+  fromStageId    Int?
+  toStageId      Int
+  fromCurrencyId Int?
+  toCurrencyId   Int
+  changedById    Int?
+  name           String   @db.VarChar(191) // uuidv4 or label
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transaction  transactions @relation(fields: [transactionId], references: [id])
+  fromClient   clients?     @relation("FromClient", fields: [fromClientId], references: [id])
+  toClient     clients      @relation("ToClient", fields: [toClientId], references: [id])
+  fromStage    stages?      @relation("FromStage", fields: [fromStageId], references: [id])
+  toStage      stages       @relation("ToStage", fields: [toStageId], references: [id])
+  fromCurrency currencies?  @relation("FromCurrency", fields: [fromCurrencyId], references: [id])
+  toCurrency   currencies   @relation("ToCurrency", fields: [toCurrencyId], references: [id])
+  changedBy    users?       @relation("ChangedByUser", fields: [changedById], references: [id])
+
+  @@index([transactionId])
+  @@index([toClientId])
+  @@index([toStageId])
+  @@index([toCurrencyId])
+  @@index([changedById])
+  @@map("transactionhistories")
+}
+
+model stages {
+  id        Int      @id @default(autoincrement())
+  dataOrder Int
+  name      String   @unique
+  name_en   String
+  name_de   String
+  name_nl   String
+  name_id   String
+  name_ph   String
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions       transactions[]
+  fromStageHistories transactionhistories[] @relation("FromStage")
+  toStageHistories   transactionhistories[] @relation("ToStage")
+}
+
+/**
+ * ----------------------------------------------------------------
+ */
+/**
+ * -----------------------------EVENTS-----------------------------
+ */
+model events {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  title         String
+  startDateTime DateTime
+  endDateTime   DateTime
+  status        Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startDateTime])
+  @@index([startDateTime])
+}
+
 model schedules {
   id        Int      @id @default(autoincrement())
   title     String
-  dataDate  DateTime
-  startTime String
-  endTime   String
+  startDateTime DateTime
+  endDateTime   DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([startDateTime])
 }
 
-model events {
+/**
+ * ----------------------------------------------------------------
+ */
+/**
+ * ------------------------------TASKS-----------------------------
+ */
+model phases {
   id        Int      @id @default(autoincrement())
-  userId    Int
-  title     String
-  dataDate  DateTime
-  startTime String
-  endTime   String
-  status    Boolean
+  name      String   @unique
+  name_en   String
+  name_de   String
+  name_nl   String
+  name_id   String
+  name_ph   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks              tasks[]
+  fromPhaseHistories taskhistories[] @relation("FromPhase")
+  toPhaseHistories   taskhistories[] @relation("ToPhase")
+}
+
+model priorities {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  name_en   String
+  name_de   String
+  name_nl   String
+  name_id   String
+  name_ph   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks tasks[]
 }
 
 model tasks {
@@ -128,6 +294,12 @@ model tasks {
   phase    phases     @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   phaseHistories taskhistories[]
+
+  @@index([assigneeId, phaseId])
+  @@index([assigneeId, deadline])
+  @@index([authorId])
+  @@index([phaseId, priorityId])
+  @@index([start])
 }
 
 model taskhistories {
@@ -144,26 +316,13 @@ model taskhistories {
   fromPhase phases? @relation("FromPhase", fields: [fromPhaseId], references: [id])
   toPhase   phases  @relation("ToPhase", fields: [toPhaseId], references: [id])
   changedBy users   @relation("ChangedByUser", fields: [changedById], references: [id])
+
+  @@index([taskId])
+  @@index([toPhaseId])
+  @@index([changedById])
+  @@map("phasehistories")
 }
 
-model users {
-  id        Int      @id @default(autoincrement())
-  photo     String? // Upload Photo
-  roleId    Int
-  name      String
-  email     String   @unique
-  password  String
-  phone     String
-  address   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  authorTasks   tasks[] @relation("AuthorTasks")
-  assignedTasks tasks[] @relation("AssignedTasks")
-
-  changedPhaseHistories taskhistories[] @relation("ChangedByUser")
-
-  events events[]
-}
+/**
+ * ----------------------------------------------------------------
+ */
