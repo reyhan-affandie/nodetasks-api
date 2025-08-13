@@ -28,3 +28,4 @@ export const EMAIL_SERVER = getEnv("EMAIL_SERVER").trim();
 export const EMAIL_LOGO = getEnv("EMAIL_LOGO").trim();
 export const EMAIL_USER = getEnv("EMAIL_USER").trim();
 export const EMAIL_PASS = getEnv("EMAIL_PASS").trim();
+export const GEMINI_API_KEY = getEnv("GEMINI_API_KEY").trim();

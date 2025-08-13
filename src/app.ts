@@ -16,6 +16,10 @@ import phases from "@/routes/phases.route";
 import tasks from "@/routes/tasks.route";
 import events from "@/routes/events.route";
 import schedules from "@/routes/schedules.route";
+import clients from "@/routes/clients.route";
+import currencies from "@/routes/currencies.route";
+import transactions from "@/routes/transactions.route";
+import stages from "@/routes/stages.route";
 import { NOT_FOUND, OK } from "@/constants/http";
 import { cleanUnexpectedFiles, isAuth } from "@/middleware/auth.middleware";
 import { APP_ORIGIN, CLIENT_ORIGIN, NODE_ENV, REDIS_URL } from "@/constants/env";
@@ -115,6 +119,10 @@ app.use("/api/phases", isAuth, phases);
 app.use("/api/tasks", isAuth, cleanUnexpectedFiles, tasks);
 app.use("/api/events", isAuth, events);
 app.use("/api/schedules", isAuth, schedules);
+app.use("/api/clients", isAuth, clients);
+app.use("/api/currencies", isAuth, currencies);
+app.use("/api/transactions", isAuth, transactions);
+app.use("/api/stages", isAuth, stages);
 
 if (NODE_ENV === "development") {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

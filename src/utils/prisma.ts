@@ -3,7 +3,22 @@ const prisma = new PrismaClient();
 //type PrismaModels = keyof Omit<PrismaClient, "$connect" | "$disconnect" | "$executeRaw" | "$queryRaw" | "$transaction" | "$use">;
 export type PrismaModels = keyof Pick<
   PrismaClient,
-  "blacklists" | "events" | "features" | "phases" | "priorities" | "privileges" | "roles" | "schedules" | "tasks" | "taskhistories" | "users"
+  | "blacklists"
+  | "features"
+  | "privileges"
+  | "roles"
+  | "users"
+  | "clients"
+  | "currencies"
+  | "stages"
+  | "transactions"
+  | "transactionhistories"
+  | "events"
+  | "schedules"
+  | "phases"
+  | "priorities"
+  | "tasks"
+  | "taskhistories"
 >;
 
 //export const getPrismaModel = <T extends PrismaModels>(modelName: T) => prisma[modelName];
