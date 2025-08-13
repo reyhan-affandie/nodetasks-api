@@ -28,7 +28,8 @@ export const engineGet = async (Model: PrismaModels, fields: FieldsType, req: Re
     }
     let sort = "updatedAt";
 
-    const locales = ["en", "id", "ph"];
+    const locales = ["en", "de", "nl", "id", "ph"];
+    const transactionsSortKeys = ["id", "createdAt", "updatedAt", "client.name", "stage.name", "currency.name", ...locales.map((l) => `stage.name_${l}`)];
     const taskSortKeys = [
       "id",
       "createdAt",
@@ -42,7 +43,9 @@ export const engineGet = async (Model: PrismaModels, fields: FieldsType, req: Re
     if (req.query.sort) {
       sort = req.query.sort.toString();
       let validSort = false;
-      if (Model === "tasks") {
+      if (Model === "transactions") {
+        validSort = Object.keys(fields).includes(sort) || transactionsSortKeys.includes(sort);
+      } else if (Model === "tasks") {
         validSort = Object.keys(fields).includes(sort) || taskSortKeys.includes(sort);
       } else {
         validSort = Object.keys(fields).includes(sort) || ["id", "createdAt", "updatedAt"].includes(sort);
@@ -56,11 +59,27 @@ export const engineGet = async (Model: PrismaModels, fields: FieldsType, req: Re
     const order: "asc" | "desc" = req.query.order === "asc" ? "asc" : "desc";
     let orderBy: any = sortOrder;
 
-    if (Model === "tasks") {
+    if (Model === "transactions") {
+      if (sort === "client.name") {
+        orderBy = [{ client: { name: order } }, { transactionDate: "desc" }, { amount: "desc" }];
+      } else if (sort === "currency.name") {
+        orderBy = [{ currency: { name: order } }, { transactionDate: "desc" }, { amount: "desc" }];
+      } else if (sort === "stage.name") {
+        orderBy = [{ stage: { name: order } }, { transactionDate: "desc" }, { amount: "desc" }];
+      } else if (sort.startsWith("stage.name_")) {
+        const locale = sort.split("_")[1]; // en | de | nl | id | ph
+        orderBy = [{ stage: { [`name_${locale}`]: order } }, { transactionDate: "desc" }, { amount: "desc" }];
+      } else if (sort === "name") {
+        orderBy = [{ name: order }, { transactionDate: "desc" }, { amount: "desc" }];
+      } else {
+        orderBy = { [sort]: order };
+      }
+    } else if (Model === "tasks") {
       if (sort.startsWith("priority.name")) {
         orderBy = [{ priorityId: "desc" }, { name: "asc" }, { phaseId: "asc" }];
-      } else if (sort.startsWith("phase.name")) {
-        orderBy = [{ phaseId: "asc" }, { priorityId: "desc" }, { name: "asc" }];
+      } else if (sort.startsWith("phase.name_")) {
+        const locale = sort.split("_")[1]; // en | de | nl | id | ph
+        orderBy = [{ stage: { [`name_${locale}`]: order } }, { transactionDate: "desc" }, { amount: "desc" }];
       } else if (sort === "name") {
         orderBy = [{ name: order }, { priorityId: "desc" }, { phaseId: "asc" }];
       } else {
@@ -110,13 +129,87 @@ export const engineGet = async (Model: PrismaModels, fields: FieldsType, req: Re
       include[key] = true;
     });
 
+    // helpers
+    const getStr = (v: unknown) => (typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined);
+
+    const RX_DATE_ONLY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    const RX_DATE_HM = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])[ T]([01]\d|2[0-3]):([0-5]\d)$/;
+
+    // Returns either a local-day range [gte, lt) or an exact Date
+    function parseFlexible(raw: string, label: string): { range?: { gte: Date; lt: Date }; exact?: Date } {
+      if (RX_DATE_ONLY.test(raw)) {
+        const [y, m, d] = raw.split("-").map(Number);
+        const gte = new Date(y, m - 1, d, 0, 0, 0, 0);
+        const lt = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
+        return { range: { gte, lt } };
+      }
+      const hm = RX_DATE_HM.exec(raw);
+      if (hm) {
+        const [y, m, d] = raw.slice(0, 10).split("-").map(Number);
+        const [hh, mm] = hm[0].slice(11).split(":").map(Number);
+        return { exact: new Date(y, m - 1, d, hh, mm, 0, 0) };
+      }
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) throw createHttpError(BAD_REQUEST, `Invalid ${label} format.`);
+      return { exact: d };
+    }
+
+    // Merge logic: when both params exist, build { gte, lt|lte }
+    function buildBetween(startRaw: string, endRaw: string, startLabel: string, endLabel: string) {
+      const sp = parseFlexible(startRaw, startLabel);
+      const ep = parseFlexible(endRaw, endLabel);
+
+      const from = sp.range ? sp.range.gte : sp.exact!;
+      // If end is date-only we got an exclusive upper bound (lt next day). If exact, use inclusive lte.
+      const toLt = ep.range?.lt;
+      const toLte = ep.exact;
+
+      // sanity
+      const upper = toLt ?? toLte!;
+      if (from > upper) throw createHttpError(BAD_REQUEST, `Invalid range: ${startLabel} is after ${endLabel}.`);
+
+      return {
+        ...(toLt ? { gte: from, lt: toLt } : {}),
+        ...(toLte ? { gte: from, lte: toLte } : {}),
+      };
+    }
+
     const whereDate: Record<string, any> = {};
-    if ((Model === "events" || Model === "schedules") && req.query.dataDate && typeof req.query.dataDate === "string") {
-      const parsedDate = new Date(req.query.dataDate);
-      if (!isNaN(parsedDate.getTime())) {
-        whereDate["dataDate"] = parsedDate;
-      } else {
-        throw createHttpError(BAD_REQUEST, "Invalid dataDate format.");
+
+    // Events and Schedules
+    if (Model === "events" || Model === "schedules") {
+      const startRaw = getStr(req.query.startDateTime);
+      const endRaw = getStr(req.query.endDateTime);
+
+      if (startRaw && endRaw) {
+        // Between startDateTime and endDateTime
+        whereDate.startDateTime = buildBetween(startRaw, endRaw, "startDateTime", "endDateTime");
+      } else if (startRaw) {
+        // Single param — whole day if date-only, or exact if datetime
+        const p = parseFlexible(startRaw, "startDateTime");
+        whereDate.startDateTime = p.range ?? { equals: p.exact };
+      } else if (endRaw) {
+        // Only end provided — interpret similarly
+        const p = parseFlexible(endRaw, "endDateTime");
+        whereDate.endDateTime = p.range ?? { equals: p.exact };
+      }
+    }
+
+    // Tasks
+    if (Model === "tasks") {
+      const startRaw = getStr(req.query.start); // param name: start
+      const endRaw = getStr(req.query.deadline); // param name: deadline
+
+      if (startRaw && endRaw) {
+        // Between start and deadline on the tasks.start field
+        whereDate.start = buildBetween(startRaw, endRaw, "start", "deadline");
+      } else if (startRaw) {
+        const p = parseFlexible(startRaw, "start");
+        whereDate.start = p.range ?? { equals: p.exact };
+      } else if (endRaw) {
+        const p = parseFlexible(endRaw, "deadline");
+        // If you want to filter by tasks.deadline when only deadline is provided, change the field below
+        whereDate.start = p.range ?? { lte: p.exact }; // or: whereDate.deadline = ...
       }
     }
 

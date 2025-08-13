@@ -82,4 +82,4 @@ jobs:
         run: |
           sleep 10
           sudo crontab -l | grep -q "$CRON_FILE" || \
-          (sudo crontab -l; echo "* * * * * $CRON_FILE >> $(dirname $CRON_FILE)/$(basename $CRON_FILE .sh).log 2>&1") | sudo crontab -
+          (sudo crontab -l; echo "0 17 * * * $CRON_FILE >> $(dirname $CRON_FILE)/$(basename $CRON_FILE .sh).log 2>&1") | sudo crontab -

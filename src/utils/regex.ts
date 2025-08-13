@@ -1,4 +1,4 @@
-export const regexString = /^[a-zA-Z0-9\s\-/_.,”’!?#&()@:+`*]*$/;
+export const regexString = /^[a-zA-Z0-9\s\-/_.,”’!?#&()@:+`*\u2013]*$/;
 // Allows alphanumeric characters, spaces, dashes, underscores, apostrophes, periods, and commas.
 // Allows exclamation marks, hash symbols, question marks, ampersands, parentheses, at-symbols, and colons.
 // Blocks <, >, ", \, =, %, *, {, } to prevent SQL Injection and XSS attacks.
@@ -28,3 +28,14 @@ export const regexDate = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 // Strictly matches dates in 'YYYY-MM-DD' format with valid ranges for month and day.
 export const regexTime = /^([01]\d|2[0-3]):([0-5]\d)$/;
 // Matches 24-hour time format (e.g., 00:00 to 23:59)
+export const regexDateTime = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)\.\d{3}Z$/;
+// DateTime (UTC, 24h): "YYYY-MM-DDTHH:mm:ss.SSSZ"
+// YYYY   -> 4-digit year
+// MM     -> month (01–12)
+// DD     -> day (01–31)
+// T      -> literal 'T' separator
+// HH     -> hour (00–23)
+// mm     -> minute (00–59)
+// ss     -> second (00–59)
+// .SSS   -> milliseconds (000–999, exactly 3 digits)
+// Z      -> literal 'Z' for UTC timezone only
