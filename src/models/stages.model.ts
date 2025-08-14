@@ -1,7 +1,23 @@
 import { FieldsType } from "@/types/types";
-import { regexString } from "@/utils/regex";
+import { regexNumber, regexString } from "@/utils/regex";
 
 export const fields: FieldsType = {
+  dataOrder: {
+    type: Number,
+    fk: false,
+    parent: "",
+    fkGet: false,
+    search: false,
+    select: true,
+    required: true,
+    unique: true,
+    minLength: 1,
+    maxLength: 15,
+    regex: regexNumber,
+    isHashed: false,
+    isImage: false,
+    isFile: false,
+  },
   name: {
     type: String,
     fk: false,
